@@ -12,6 +12,12 @@
 #include <pwd.h>
 #include <grp.h>
 
+//Цвета
+#define COLOR_RESET "\033[0m"
+#define COLOR_DIR "\033[1;34m"
+#define COLOR_EXE "\033[1;32m"
+#define COLOR_LNK "\033[1;36m"
+
 void print_file_permissions(mode_t mode) {
     char permissions[11];
 
@@ -54,6 +60,22 @@ void print_last_modified(time_t time){
     strncpy(new_date, space_pos, new_length);
     printf("%s ", new_date);
 }
+
+void print_colored_name(const char* name, mode_t mode) {
+    if (S_ISDIR(mode)) {
+        printf(COLOR_DIR "%s" COLOR_RESET, name);
+    }
+    else if (S_ISREG(mode) && (mode & S_IXUSR)) {
+        printf(COLOR_EXE "%s" COLOR_RESET, name);
+    }
+    else if (S_ISLNK(mode)) {
+        printf(COLOR_LNK "%s" COLOR_RESET, name);
+    }
+    else {
+        printf("%s", name);
+    }
+}
+
 
 int main(int argc, char** argv) {
 
@@ -116,7 +138,15 @@ int main(int argc, char** argv) {
                 print_last_modified(file_info.st_mtime); 
             }
         }
-        printf("%s\n", ep->d_name);
+
+        struct stat file_info;
+        if (stat(ep->d_name, &file_info) == 0){
+             print_colored_name(ep->d_name, file_info.st_mode);
+        }
+        else{
+            printf("%s\n", ep->d_name);
+        }
+        printf("\n");
 
 	}
     closedir(dp);
