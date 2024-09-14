@@ -58,21 +58,21 @@ void print_last_modified(time_t time){
     int new_length = strlen(space_pos) - 8;
     char new_date[14];
     strncpy(new_date, space_pos, new_length);
-    printf("%s ", new_date);
+    printf("%-8s ", new_date);
 }
 
 void print_colored_name(const char* name, mode_t mode) {
     if (S_ISDIR(mode)) {
-        printf(COLOR_DIR "%s" COLOR_RESET, name);
+        printf(COLOR_DIR "%-8s" COLOR_RESET, name);
     }
     else if (S_ISREG(mode) && (mode & S_IXUSR)) {
-        printf(COLOR_EXE "%s" COLOR_RESET, name);
+        printf(COLOR_EXE "%-8s" COLOR_RESET, name);
     }
     else if (S_ISLNK(mode)) {
-        printf(COLOR_LNK "%s" COLOR_RESET, name);
+        printf(COLOR_LNK "%-8s" COLOR_RESET, name);
     }
     else {
-        printf("%s", name);
+        printf("%-8s", name);
     }
 }
 
@@ -132,9 +132,9 @@ int main(int argc, char** argv) {
                 struct group  *gr = getgrgid(file_info.st_gid);
 
                 print_file_permissions(file_info.st_mode);
-                printf("%ld ", (long)file_info.st_nlink); 
-                printf("%s %s ", pw->pw_name, gr->gr_name);  
-                printf("%ld ", file_info.st_size);
+                printf(" %ld ", (long)file_info.st_nlink); 
+                printf("%s  %s", pw->pw_name, gr->gr_name);  
+                printf("%8lld", file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
             }
         }
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
              print_colored_name(ep->d_name, file_info.st_mode);
         }
         else{
-            printf("%s\n", ep->d_name);
+            printf("|%-s|\n", ep->d_name);
         }
         printf("\n");
 
