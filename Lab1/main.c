@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h> 
 
 #include <sys/stat.h> 
 // #include <sys/types.h>
@@ -98,17 +99,26 @@ int main(int argc, char** argv) {
         }
     }
 
-	DIR* dp = opendir("./");
+    const char* dir_path = (argc > optind) ? argv[optind] : ".";
+
+    DIR* dp = opendir(dir_path);
+
 	struct dirent* ep;
+    struct stat file_info;
 
     // Первый проход по дирректориям для подсчета их кол-во
     while ((ep = readdir(dp)) != NULL) {
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
+        char full_path[PATH_MAX];
+        if (dir_path[strlen(dir_path) - 1] == '/') {
+            snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
+        } else {
+            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ep->d_name);
+        }
 
-        struct stat file_info;
-        if (stat(ep->d_name, &file_info) == 0){
+        if (lstat(full_path, &file_info) == 0){
             total_blocks += file_info.st_blocks; 
         }
     }
@@ -124,31 +134,31 @@ int main(int argc, char** argv) {
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
+         char full_path[PATH_MAX];
+        if (dir_path[strlen(dir_path) - 1] == '/') {
+            snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
+        } else {
+            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ep->d_name);
+        }
 
         if (long_format) {
-            struct stat file_info;
-            if (stat(ep->d_name, &file_info) == 0) {
+            if (lstat(full_path, &file_info) == 0) {
                 struct passwd *pw = getpwuid(file_info.st_uid);
                 struct group  *gr = getgrgid(file_info.st_gid);
 
                 print_file_permissions(file_info.st_mode);
                 printf(" %ld ", (long)file_info.st_nlink); 
                 printf("%s  %s", pw->pw_name, gr->gr_name);  
-                printf("%8lld", file_info.st_size);
+                printf("%8ld", file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
             }
         }
 
-        struct stat file_info;
-        if (stat(ep->d_name, &file_info) == 0){
-             print_colored_name(ep->d_name, file_info.st_mode);
-        }
-        else{
-            printf("|%-s|\n", ep->d_name);
-        }
+        print_colored_name(ep->d_name, file_info.st_mode);
         printf("\n");
 
 	}
+
     closedir(dp);
     return 0;
 }
