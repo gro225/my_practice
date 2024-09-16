@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <limits.h> 
+#include <limits.h>
+#include <stdlib.h>
 
 #include <sys/stat.h> 
 // #include <sys/types.h>
@@ -51,6 +52,7 @@ void print_file_permissions(mode_t mode) {
     printf("%s ", permissions);
 }
 
+//Последнее изменение 
 void print_last_modified(time_t time){
     char* date = ctime(&time);
     date[strlen(date) - 1] = '\0';
@@ -62,6 +64,7 @@ void print_last_modified(time_t time){
     printf("%-8s ", new_date);
 }
 
+//Вывод с цыетом
 void print_colored_name(const char* name, mode_t mode) {
     if (S_ISDIR(mode)) {
         printf(COLOR_DIR "%-8s" COLOR_RESET, name);
@@ -102,12 +105,14 @@ int main(int argc, char** argv) {
     const char* dir_path = (argc > optind) ? argv[optind] : ".";
 
     DIR* dp = opendir(dir_path);
-
-	struct dirent* ep;
     struct stat file_info;
 
-    // Первый проход по дирректориям для подсчета их кол-во
-    while ((ep = readdir(dp)) != NULL) {
+    struct dirent **namelist;
+    int num_files = scandir(dir_path, &namelist, NULL, alphasort);
+
+    // Первый проход по дирректориям для подсчета кол-вa блоков
+     for (int i = 0; i < num_files; i++){
+        struct dirent *ep = namelist[i];
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
@@ -122,6 +127,7 @@ int main(int argc, char** argv) {
             total_blocks += file_info.st_blocks; 
         }
     }
+
      if (long_format) {
          printf("total %lld\n", total_blocks / 2);
      }
@@ -130,10 +136,12 @@ int main(int argc, char** argv) {
     rewinddir(dp);
 
     // Второй проход по дирректориями для вывода информации
-    while ((ep = readdir(dp)) != NULL){
+     for (int i = 0; i < num_files; i++){
+        struct dirent *ep = namelist[i];
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
+        
          char full_path[PATH_MAX];
         if (dir_path[strlen(dir_path) - 1] == '/') {
             snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
@@ -147,9 +155,9 @@ int main(int argc, char** argv) {
                 struct group  *gr = getgrgid(file_info.st_gid);
 
                 print_file_permissions(file_info.st_mode);
-                printf(" %ld ", (long)file_info.st_nlink); 
-                printf("%s  %s", pw->pw_name, gr->gr_name);  
-                printf("%8ld", file_info.st_size);
+                printf("%2ld ", (long)file_info.st_nlink); 
+                printf("%-4s %-4s ", pw->pw_name, gr->gr_name);  
+                printf("%4ld", file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
             }
         }
@@ -158,6 +166,12 @@ int main(int argc, char** argv) {
         printf("\n");
 
 	}
+
+    // Освобождение памяти
+    for (int i = 0; i < num_files; i++) {
+        free(namelist[i]);
+    }
+    free(namelist);
 
     closedir(dp);
     return 0;
