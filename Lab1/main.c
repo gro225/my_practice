@@ -105,6 +105,11 @@ int main(int argc, char** argv) {
     const char* dir_path = (argc > optind) ? argv[optind] : ".";
 
     DIR* dp = opendir(dir_path);
+    if (dp == NULL) {
+        perror("opendir");
+        return 1;
+    }
+
     struct stat file_info;
 
     struct dirent **namelist;
@@ -113,9 +118,11 @@ int main(int argc, char** argv) {
     // Первый проход по дирректориям для подсчета кол-вa блоков
      for (int i = 0; i < num_files; i++){
         struct dirent *ep = namelist[i];
+
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
+
         char full_path[PATH_MAX];
         if (dir_path[strlen(dir_path) - 1] == '/') {
             snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
@@ -125,6 +132,9 @@ int main(int argc, char** argv) {
 
         if (lstat(full_path, &file_info) == 0){
             total_blocks += file_info.st_blocks; 
+        }
+        else {
+            perror("lstat");
         }
     }
 
@@ -155,10 +165,13 @@ int main(int argc, char** argv) {
                 struct group  *gr = getgrgid(file_info.st_gid);
 
                 print_file_permissions(file_info.st_mode);
-                printf("%2ld ", (long)file_info.st_nlink); 
+                printf("%4ld ", (long)file_info.st_nlink); 
                 printf("%-4s %-4s ", pw->pw_name, gr->gr_name);  
-                printf("%4ld", file_info.st_size);
+                printf("%8ld ", file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
+            }
+            else {
+                perror("lstat");
             }
         }
 
