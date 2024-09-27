@@ -65,7 +65,7 @@ void print_last_modified(time_t time){
 }
 
 //Вывод с цыетом
-void print_colored_name(const char* name, mode_t mode) {
+void print_colored_name(const char* name, mode_t mode, const char* full_path) {
     if (S_ISDIR(mode)) {
         printf(COLOR_DIR "%-8s" COLOR_RESET, name);
     }
@@ -73,13 +73,19 @@ void print_colored_name(const char* name, mode_t mode) {
         printf(COLOR_EXE "%-8s" COLOR_RESET, name);
     }
     else if (S_ISLNK(mode)) {
-        printf(COLOR_LNK "%-8s" COLOR_RESET, name);
+        char link_target[PATH_MAX];
+        ssize_t len = readlink(full_path, link_target, sizeof(link_target) - 1);
+        if (len != -1) {
+            link_target[len] = '\0';
+            printf(COLOR_LNK "%s" COLOR_RESET " -> %-8s", name, link_target);
+        } else {
+            printf(COLOR_LNK "%-8s" COLOR_RESET, name);
+        }
     }
     else {
         printf("%-8s", name);
     }
 }
-
 
 int main(int argc, char** argv) {
 
@@ -160,14 +166,28 @@ int main(int argc, char** argv) {
         }
 
         if (long_format) {
-            if (lstat(full_path, &file_info) == 0) {
+                print_file_permissions(file_info.st_mode);
+                printf("%4ld ", (long)file_info.st_nlink);
+
+                if (lstat(full_path, &file_info) == 0) {
                 struct passwd *pw = getpwuid(file_info.st_uid);
                 struct group  *gr = getgrgid(file_info.st_gid);
 
-                print_file_permissions(file_info.st_mode);
-                printf("%4ld ", (long)file_info.st_nlink); 
-                printf("%-4s %-4s ", pw->pw_name, gr->gr_name);  
-                printf("%8ld ", file_info.st_size);
+                if (pw != NULL) {
+                    printf("%-4s ", pw->pw_name);
+                } 
+                else {
+                    printf("%-4d ", file_info.st_uid); 
+                } 
+
+                if (gr != NULL) {
+                    printf("%-4s ", gr->gr_name);  
+                }        
+                else{
+                    printf("%-4d ", file_info.st_gid);  
+                }
+                 
+                printf("%*ld ", (int)sizeof(file_info.st_size), file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
             }
             else {
@@ -175,7 +195,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        print_colored_name(ep->d_name, file_info.st_mode);
+        print_colored_name(ep->d_name, file_info.st_mode, full_path);
         printf("\n");
 
 	}
