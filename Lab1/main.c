@@ -31,6 +31,9 @@ void print_file_permissions(mode_t mode) {
     } else if (S_ISLNK(mode)) {
         permissions[0] = 'l';
     }
+    else{
+        permissions[0] = '?';
+    }
 
     // Права пользователя
     permissions[1] = (mode & S_IRUSR) ? 'r' : '-';
@@ -53,19 +56,14 @@ void print_file_permissions(mode_t mode) {
 }
 
 //Последнее изменение 
-void print_last_modified(time_t time){
-    char* date = ctime(&time);
-    date[strlen(date) - 1] = '\0';
-    //Проиводим к виду ls 
-    char* space_pos = strstr(date, " ");
-    int new_length = strlen(space_pos) - 8;
-    char new_date[14];
-    strncpy(new_date, space_pos, new_length);
-    printf("%-8s ", new_date);
+void print_last_modified(time_t time) {
+    char date[20];
+    strftime(date, sizeof(date), "%b %d %H:%M", localtime(&time));
+    printf("%s ", date);
 }
 
-//Вывод с цыетом
-void print_colored_name(const char* name, mode_t mode, const char* full_path) {
+//Вывод с цветом
+void print_colored_name(const char* name, mode_t mode, const char* full_path, int long_format) {
     if (S_ISDIR(mode)) {
         printf(COLOR_DIR "%-8s" COLOR_RESET, name);
     }
@@ -73,12 +71,16 @@ void print_colored_name(const char* name, mode_t mode, const char* full_path) {
         printf(COLOR_EXE "%-8s" COLOR_RESET, name);
     }
     else if (S_ISLNK(mode)) {
-        char link_target[PATH_MAX];
-        ssize_t len = readlink(full_path, link_target, sizeof(link_target) - 1);
-        if (len != -1) {
-            link_target[len] = '\0';
-            printf(COLOR_LNK "%s" COLOR_RESET " -> %-8s", name, link_target);
-        } else {
+        if (long_format) {
+            char link_target[PATH_MAX];
+            ssize_t len = readlink(full_path, link_target, sizeof(link_target) - 1);
+            if (len != -1) {
+                link_target[len] = '\0';
+                printf(COLOR_LNK "%s" COLOR_RESET " -> %-8s", name, link_target);
+            } 
+            else {printf(COLOR_LNK "%-8s" COLOR_RESET, name);}
+        }
+        else{
             printf(COLOR_LNK "%-8s" COLOR_RESET, name);
         }
     }
@@ -122,7 +124,7 @@ int main(int argc, char** argv) {
     int num_files = scandir(dir_path, &namelist, NULL, alphasort);
 
     // Первый проход по дирректориям для подсчета кол-вa блоков
-     for (int i = 0; i < num_files; i++){
+    for (int i = 0; i < num_files; i++){
         struct dirent *ep = namelist[i];
 
         if (!show_all && ep->d_name[0] == '.') {
@@ -130,11 +132,7 @@ int main(int argc, char** argv) {
         }
 
         char full_path[PATH_MAX];
-        if (dir_path[strlen(dir_path) - 1] == '/') {
-            snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
-        } else {
-            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ep->d_name);
-        }
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ep->d_name);
 
         if (lstat(full_path, &file_info) == 0){
             total_blocks += file_info.st_blocks; 
@@ -144,35 +142,25 @@ int main(int argc, char** argv) {
         }
     }
 
-     if (long_format) {
-         printf("total %lld\n", total_blocks / 2);
-     }
-
-    // Сбрасываем позицию 
-    rewinddir(dp);
+    if (long_format) {
+        printf("total %lld\n", total_blocks / 2);
+    }
 
     // Второй проход по дирректориями для вывода информации
-     for (int i = 0; i < num_files; i++){
+    for (int i = 0; i < num_files; i++){
         struct dirent *ep = namelist[i];
         if (!show_all && ep->d_name[0] == '.') {
             continue;
         }
         
-         char full_path[PATH_MAX];
-        if (dir_path[strlen(dir_path) - 1] == '/') {
-            snprintf(full_path, sizeof(full_path), "%s%s", dir_path, ep->d_name);
-        } else {
-            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ep->d_name);
-        }
-
-        if (long_format) {
+        char full_path[PATH_MAX];
+        snprintf(full_path, sizeof(full_path), "%s/%s",dir_path, ep->d_name);
+        if (lstat(full_path, &file_info) == 0) {
+            if (long_format) {
                 print_file_permissions(file_info.st_mode);
                 printf("%4ld ", (long)file_info.st_nlink);
-
-                if (lstat(full_path, &file_info) == 0) {
                 struct passwd *pw = getpwuid(file_info.st_uid);
                 struct group  *gr = getgrgid(file_info.st_gid);
-
                 if (pw != NULL) {
                     printf("%-4s ", pw->pw_name);
                 } 
@@ -186,18 +174,15 @@ int main(int argc, char** argv) {
                 else{
                     printf("%-4d ", file_info.st_gid);  
                 }
-                 
+
                 printf("%*ld ", (int)sizeof(file_info.st_size), file_info.st_size);
                 print_last_modified(file_info.st_mtime); 
+        
             }
-            else {
-                perror("lstat");
-            }
+            print_colored_name(ep->d_name, file_info.st_mode, full_path, long_format);
+            printf("\n");
         }
-
-        print_colored_name(ep->d_name, file_info.st_mode, full_path);
-        printf("\n");
-
+        else { perror("lstat");}
 	}
 
     // Освобождение памяти
