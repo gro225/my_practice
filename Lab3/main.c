@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/wait.h>
 
 void exit_handler() {
     printf("Программа завершена.\n");
