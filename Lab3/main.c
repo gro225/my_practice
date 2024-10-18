@@ -23,7 +23,11 @@ int main() {
         perror("Не удалось обработать SIGINT");
         exit(1);
     }
-    if (signal(15, signal_handler) == (void (*)(int))-1) {
+
+    struct sigaction sa ;
+    sa.sa_handler = signal_handler;
+    
+    if (sigaction(15, &sa, 0) == -1) {
         perror("Не удалось обработать SIGTERM");
         exit(1);
     }
