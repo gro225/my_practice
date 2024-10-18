@@ -41,18 +41,28 @@ int main() {
     } 
     else if (pid == 0) {
         printf("Это дочерний процесс с PID: %d\n", getpid());
+        sleep(5);
+        exit(15);
     } 
     else {
         printf("Это родительский процесс с PID: %d, дочерний PID: %d\n", getpid(), pid);
-    }
+        int status;
+        wait(&status);
 
-    // Цикл для ожидания сигналов
-    while (1) {
-        // int sys_pause(void);  
-        // current_process->state = TASK_INTERRUPTIBLE;
-        // schedule();  
-        pause();
+        if (WIFEXITED(status)) {
+            printf("Дочерний процесс завершился с кодом %d\n", WEXITSTATUS(status));
+        }
+        else {
+            printf("Дочерний процесс завершился с ошибкой\n");
+        }
     }
+    // // Цикл для ожидания сигналов
+    // while (1) {
+    //     // int sys_pause(void);  
+    //     // current_process->state = TASK_INTERRUPTIBLE;
+    //     // schedule();  
+    //     pause();
+    // }
 
     return 0;
 }
