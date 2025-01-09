@@ -36,7 +36,7 @@ int main() {
             return 1;
         }
 
-        char time_str[16];
+        char time_str[8];
         get_current_time(time_str, sizeof(time_str));
 
         snprintf(buffer, sizeof(buffer), "Time: %s, Parent PID: %d\n", time_str, getpid());
@@ -57,8 +57,8 @@ int main() {
         if (bytes_read > 0) {
             buffer[bytes_read] = '\0';
         }
-        sleep(7);
-        char time_str[16];
+        sleep(5);
+        char time_str[8];
         get_current_time(time_str, sizeof(time_str));
         printf("Child received: %sChild current time: %s\n", buffer, time_str);
 

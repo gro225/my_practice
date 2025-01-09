@@ -27,7 +27,7 @@ int main() {
     // Родитель
     if (pid > 0) {
         close(fd[0]);  
-        char time_str[16];
+        char time_str[8];
         get_current_time(time_str, sizeof(time_str));
 
         snprintf(buffer, sizeof(buffer), "Time: %s, Parent PID: %d\n", time_str, getpid());
@@ -39,13 +39,13 @@ int main() {
 
     //Ребенок
     else { 
-        sleep(7);  
+        sleep(5);  
         close(fd[1]); 
-
+     
         read(fd[0], buffer, sizeof(buffer) - 1);
         buffer[strlen(buffer)] = '\0';
 
-        char time_str[16];
+        char time_str[8];
         get_current_time(time_str, sizeof(time_str));
         printf("Child received: %sChild current time: %s\n", buffer, time_str);
 
