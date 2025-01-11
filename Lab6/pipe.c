@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 void get_current_time(char *buffer, size_t size) {
     time_t now = time(NULL);
@@ -35,6 +36,7 @@ int main() {
         close(fd[1]);
 
         printf("Parent sent: %s", buffer);
+        wait(NULL);
     }
 
     //Ребенок

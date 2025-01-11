@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 
 void get_current_time(char *buffer, size_t size) {
@@ -43,7 +44,10 @@ int main() {
         write(fd, buffer, strlen(buffer));
         close(fd);
 
-        printf("Parent sent: %s", buffer);  
+        printf("Parent sent: %s", buffer);
+        wait(NULL);
+
+        unlink(filename);
     } 
     // Ребенок
     else {  
@@ -63,11 +67,6 @@ int main() {
         printf("Child received: %sChild current time: %s\n", buffer, time_str);
 
         close(fd);
-    }
-
-    // Удаляем FIFO
-    if (pid > 0) {
-        unlink(filename);
     }
 
     return 0;
