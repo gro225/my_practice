@@ -36,9 +36,9 @@ void* reader_thread(void* arg) {
             if (tid == current_tid) {
                 pthread_rwlock_rdlock(&rwlock);  
                 printf("Reader TID %d: [%s]\n", tid, shared_array);
+                current_tid++;
                 pthread_rwlock_unlock(&rwlock);  
                 
-                current_tid++;
         
                 break;  
             }
