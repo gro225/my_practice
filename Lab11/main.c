@@ -8,7 +8,6 @@
 
 char shared_array[ARRAY_SIZE + 1];  
 pthread_rwlock_t rwlock;            // Блокировка чтения-записи
-pthread_mutex_t mutex;              // Мьютекс для управления порядком вывода
 int counter = 0;                    
 int current_tid = 0;                
 
@@ -20,9 +19,7 @@ void* writer_thread() {
         snprintf(shared_array, ARRAY_SIZE + 1, "%010d", counter++);
 
      
-        pthread_mutex_lock(&mutex);
         current_tid = 0;
-        pthread_mutex_unlock(&mutex);
 
         pthread_rwlock_unlock(&rwlock);  
         sleep(WRITE_INTERVAL); 
@@ -36,17 +33,15 @@ void* reader_thread(void* arg) {
 
     while (1) {
         while (1) {
-            pthread_mutex_lock(&mutex);
             if (tid == current_tid) {
                 pthread_rwlock_rdlock(&rwlock);  
                 printf("Reader TID %d: [%s]\n", tid, shared_array);
                 pthread_rwlock_unlock(&rwlock);  
                 
                 current_tid++;
-                pthread_mutex_unlock(&mutex);
+        
                 break;  
             }
-            pthread_mutex_unlock(&mutex);
             usleep(1000);  
         }
     }
@@ -59,7 +54,6 @@ int main() {
     int tids[NUM_READERS];
 
     pthread_rwlock_init(&rwlock, NULL);  
-    pthread_mutex_init(&mutex, NULL);
 
     pthread_create(&writer, NULL, writer_thread, NULL);
 
@@ -74,7 +68,6 @@ int main() {
     }
     //Очистка
     pthread_rwlock_destroy(&rwlock);
-    pthread_mutex_destroy(&mutex);
 
     return 0;
 }
